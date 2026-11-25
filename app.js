@@ -5,7 +5,6 @@ const modeSelect = document.getElementById("modeSelect");
 const statusText = document.getElementById("status");
 const screenStrobe = document.getElementById("screenStrobe");
 
-// Drift-free wait using high-resolution clock
 const preciseSleep = async (ms) => {
   const end = performance.now() + ms;
   while (performance.now() < end) {
@@ -49,7 +48,7 @@ async function findHardwareTorch() {
 }
 
 sendBtn.addEventListener("click", async () => {
-  const message = messageInput.value; // Keep spaces if user types multi-word sentences
+  const message = messageInput.value;
   if (!message || message.trim().length === 0) {
     statusText.textContent = "Status: Enter a message first.";
     return;
@@ -103,16 +102,14 @@ sendBtn.addEventListener("click", async () => {
     await sendPulse(800, 250);
 
     // 2. Reference '1' Calibration Pulse: 400ms ON, 250ms OFF
-    // (Arduino measures this exact pulse to auto-set the 0 vs 1 threshold!)
     await sendPulse(400, 250);
 
-    // 3. Transmit all characters (letters, numbers, spaces, symbols)
+    // 3. Transmit all characters
     for (let i = 0; i < message.length; i++) {
       const encryptedByte = message.charCodeAt(i) ^ SECRET_KEY;
 
       for (let bitPos = 7; bitPos >= 0; bitPos--) {
         const bit = (encryptedByte >> bitPos) & 1;
-        // '1' = 400ms ON, '0' = 140ms ON, 250ms OFF recovery gap
         await sendPulse(bit === 1 ? 400 : 140, 250);
       }
     }
