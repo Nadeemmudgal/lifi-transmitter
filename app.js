@@ -5,9 +5,17 @@ const modeSelect = document.getElementById("modeSelect");
 const statusText = document.getElementById("status");
 const screenStrobe = document.getElementById("screenStrobe");
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// Drift-free wait using high-resolution clock
+const preciseSleep = async (ms) => {
+  const end = performance.now() + ms;
+  while (performance.now() < end) {
+    const remaining = end - performance.now();
+    if (remaining > 15) {
+      await new Promise((r) => setTimeout(r, remaining - 10));
+    }
+  }
+};
 
-// Scan all cameras to find any lens that supports hardware torch
 async function findHardwareTorch() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
 
@@ -41,8 +49,8 @@ async function findHardwareTorch() {
 }
 
 sendBtn.addEventListener("click", async () => {
-  const message = messageInput.value.trim();
-  if (!message) {
+  const message = messageInput.value; // Keep spaces if user types multi-word sentences
+  if (!message || message.trim().length === 0) {
     statusText.textContent = "Status: Enter a message first.";
     return;
   }
@@ -61,50 +69,57 @@ sendBtn.addEventListener("click", async () => {
         if (mode === "flash") {
           throw new Error("Rear flashlight not exposed on this phone. Switch Mode to Screen Flash.");
         }
-        useScreen = true; // Automatic fallback so every phone works!
+        useScreen = true;
       }
     }
 
     const setLight = async (on) => {
       if (useScreen) {
         screenStrobe.style.backgroundColor = on ? "#FFFFFF" : "#000000";
-        screenStrobe.style.color = on ? "#FFFFFF" : "#333333";
+        screenStrobe.style.color = on ? "#FFFFFF" : "#000000";
       } else {
         await track.applyConstraints({ advanced: [{ torch: on }] });
       }
     };
 
+    const sendPulse = async (onMs, offMs) => {
+      await setLight(true);
+      await preciseSleep(onMs);
+      await setLight(false);
+      await preciseSleep(offMs);
+    };
+
     if (useScreen) {
+      await setLight(false);
       screenStrobe.style.display = "flex";
       statusText.textContent = "Status: Transmitting via Screen Flash...";
-      await sleep(400);
+      await preciseSleep(500);
     } else {
       statusText.textContent = "Status: Transmitting via Rear Flashlight...";
+      await preciseSleep(300);
     }
 
-    // 1. Start Bit: 500ms ON, 100ms OFF
-    await setLight(true);
-    await sleep(500);
-    await setLight(false);
-    await sleep(100);
+    // 1. Start Header Pulse: 800ms ON, 250ms OFF
+    await sendPulse(800, 250);
 
-    // 2. Transmit each character as 8 XOR-encrypted bits
+    // 2. Reference '1' Calibration Pulse: 400ms ON, 250ms OFF
+    // (Arduino measures this exact pulse to auto-set the 0 vs 1 threshold!)
+    await sendPulse(400, 250);
+
+    // 3. Transmit all characters (letters, numbers, spaces, symbols)
     for (let i = 0; i < message.length; i++) {
       const encryptedByte = message.charCodeAt(i) ^ SECRET_KEY;
 
       for (let bitPos = 7; bitPos >= 0; bitPos--) {
         const bit = (encryptedByte >> bitPos) & 1;
-
-        await setLight(true);
-        await sleep(bit === 1 ? 200 : 100); // 1 = 200ms, 0 = 100ms
-        await setLight(false);
-        await sleep(100); // Inter-bit gap
+        // '1' = 400ms ON, '0' = 140ms ON, 250ms OFF recovery gap
+        await sendPulse(bit === 1 ? 400 : 140, 250);
       }
     }
 
-    statusText.textContent = `Status: Sent "${message}" via ${useScreen ? "Screen Flash" : "Rear Flashlight"}.`;
+    statusText.textContent = Status: Sent "${message}" via ${useScreen ? "Screen Flash" : "Rear Flashlight"}.;
   } catch (err) {
-    statusText.textContent = `Error: ${err.message}`;
+    statusText.textContent = Error: ${err.message};
   } finally {
     if (track) {
       await track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
