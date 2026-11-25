@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Strict Security Policy: blocks external scripts & framing -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';" />
+  <title>Li-Fi Light Transmitter</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 420px; margin: 40px auto; padding: 20px; background: #111; color: #f5f5f5; }
+    input, button { width: 100%; padding: 14px; margin-top: 12px; font-size: 16px; border-radius: 8px; border: none; box-sizing: border-box; }
+    input { background: #222; color: #fff; border: 1px solid #444; }
+    button { background: #00c853; color: #000; font-weight: bold; cursor: pointer; }
+    button:disabled { background: #555; color: #999; }
+    #status { margin-top: 16px; font-size: 14px; color: #aaa; }
+  </style>
+</head>
+<body>
+  <h2>Li-Fi Light Transmitter</h2>
+  <input type="text" id="messageInput" maxlength="32" placeholder="Enter message (max 32 chars)" />
+  <button id="sendBtn">Transmit via Flashlight</button>
+  <p id="status">Status: Ready (Requires Android Chrome over HTTPS)</p>
+
+  <script src="app.js"></script>
+</body>
+</html>
