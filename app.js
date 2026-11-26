@@ -7,36 +7,70 @@ const screenStrobe = document.getElementById("screenStrobe");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Scan all cameras to find any lens that supports hardware torch
-async function findHardwareTorch() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
+// Hidden video element keeps Android camera pipeline alive so torch stays on
+const hiddenVideo = document.createElement("video");
+hiddenVideo.setAttribute("playsinline", "");
+hiddenVideo.muted = true;
+hiddenVideo.style.display = "none";
+document.body.appendChild(hiddenVideo);
+
+async function getUniversalTorchTrack() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return null;
+  }
+
+  // Helper to test if a given media stream supports torch
+  const extractTorchTrack = async (stream) => {
+    const track = stream.getVideoTracks()[0];
+    if (!track) return null;
+
+    hiddenVideo.srcObject = stream;
+    await hiddenVideo.play().catch(() => {});
+    await sleep(150); // Allow camera hardware capabilities to initialize
+
+    const caps = track.getCapabilities ? track.getCapabilities() : {};
+    if (caps.torch) {
+      return { track, stream };
+    }
+
+    // Some Android devices expose torch via ImageCapture even if getCapabilities lags
+    if ("ImageCapture" in window) {
+      try {
+        const ic = new ImageCapture(track);
+        const photoCaps = await ic.getPhotoCapabilities();
+        if (photoCaps && photoCaps.fillLightMode && photoCaps.fillLightMode.includes("flash")) {
+          return { track, stream };
+        }
+      } catch (_) {}
+    }
+
+    stream.getTracks().forEach((t) => t.stop());
+    return null;
+  };
 
   try {
-    const tempStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" }
+    // 1. Try default rear environment camera first
+    const envStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } }
     });
-    const tempTrack = tempStream.getVideoTracks()[0];
-    if (tempTrack && tempTrack.getCapabilities && tempTrack.getCapabilities().torch) {
-      return tempTrack;
-    }
-    if (tempTrack) tempTrack.stop();
+    const envResult = await extractTorchTrack(envStream);
+    if (envResult) return envResult;
 
+    // 2. Scan all video inputs (handles multi-lens Android phones)
     const devices = await navigator.mediaDevices.enumerateDevices();
-    const cameras = devices.filter((d) => d.kind === "videoinput");
+    const videoDevices = devices.filter((d) => d.kind === "videoinput");
 
-    for (const cam of cameras) {
+    for (const dev of videoDevices) {
       try {
         const s = await navigator.mediaDevices.getUserMedia({
-          video: { deviceId: { exact: cam.deviceId } }
+          video: { deviceId: { exact: dev.deviceId } }
         });
-        const t = s.getVideoTracks()[0];
-        if (t && t.getCapabilities && t.getCapabilities().torch) {
-          return t;
-        }
-        if (t) t.stop();
+        const res = await extractTorchTrack(s);
+        if (res) return res;
       } catch (_) {}
     }
   } catch (_) {}
+
   return null;
 }
 
@@ -49,28 +83,30 @@ sendBtn.addEventListener("click", async () => {
 
   sendBtn.disabled = true;
   const mode = modeSelect.value;
-  let track = null;
+  let torchSession = null;
   let useScreen = mode === "screen";
 
   try {
     if (!useScreen) {
-      statusText.textContent = "Status: Checking rear flashlight...";
-      track = await findHardwareTorch();
+      statusText.textContent = "Status: Initializing mobile flashlight...";
+      torchSession = await getUniversalTorchTrack();
 
-      if (!track) {
+      if (!torchSession) {
         if (mode === "flash") {
-          throw new Error("Rear flashlight not exposed on this phone. Switch Mode to Screen Flash.");
+          throw new Error("Hardware LED not supported in this browser (e.g. iOS Safari). Select 'Auto' or 'Screen Flash'.");
         }
-        useScreen = true; // Automatic fallback so every phone works!
+        useScreen = true;
       }
     }
 
     const setLight = async (on) => {
       if (useScreen) {
         screenStrobe.style.backgroundColor = on ? "#FFFFFF" : "#000000";
-        screenStrobe.style.color = on ? "#FFFFFF" : "#333333";
+        screenStrobe.style.color = on ? "#FFFFFF" : "#222222";
       } else {
-        await track.applyConstraints({ advanced: [{ torch: on }] });
+        await torchSession.track.applyConstraints({
+          advanced: [{ torch: on }]
+        });
       }
     };
 
@@ -79,16 +115,16 @@ sendBtn.addEventListener("click", async () => {
       statusText.textContent = "Status: Transmitting via Screen Flash...";
       await sleep(400);
     } else {
-      statusText.textContent = "Status: Transmitting via Rear Flashlight...";
+      statusText.textContent = "Status: Transmitting via Rear LED Flashlight...";
     }
 
-    // 1. Start Bit: 500ms ON, 100ms OFF
+    // 1. Start Bit (700ms ON, 250ms OFF)
     await setLight(true);
-    await sleep(500);
+    await sleep(700);
     await setLight(false);
-    await sleep(100);
+    await sleep(250);
 
-    // 2. Transmit each character as 8 XOR-encrypted bits
+    // 2. Transmit XOR-encrypted bits
     for (let i = 0; i < message.length; i++) {
       const encryptedByte = message.charCodeAt(i) ^ SECRET_KEY;
 
@@ -96,9 +132,9 @@ sendBtn.addEventListener("click", async () => {
         const bit = (encryptedByte >> bitPos) & 1;
 
         await setLight(true);
-        await sleep(bit === 1 ? 200 : 100); // 1 = 200ms, 0 = 100ms
+        await sleep(bit === 1 ? 350 : 120);
         await setLight(false);
-        await sleep(100); // Inter-bit gap
+        await sleep(220);
       }
     }
 
@@ -106,9 +142,10 @@ sendBtn.addEventListener("click", async () => {
   } catch (err) {
     statusText.textContent = `Error: ${err.message}`;
   } finally {
-    if (track) {
-      await track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
-      track.stop();
+    if (torchSession) {
+      await torchSession.track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+      torchSession.stream.getTracks().forEach((t) => t.stop());
+      hiddenVideo.srcObject = null;
     }
     screenStrobe.style.display = "none";
     sendBtn.disabled = false;
