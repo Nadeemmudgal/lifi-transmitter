@@ -3,69 +3,114 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Li-Fi Light Transmitter</title>
+  <title>Li-Fi</title>
   <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      max-width: 420px;
-      margin: 24px auto;
-      padding: 0 16px;
-      background: #0d1117;
-      color: #f0f6fc;
-    }
-    h2 {
-      margin-bottom: 6px;
-      color: #00e5ff;
-    }
-    p.sub {
-      margin-top: 0;
-      font-size: 13px;
-      color: #8b949e;
-    }
-    input, select, button {
-      width: 100%;
+    * {
       box-sizing: border-box;
-      padding: 14px;
-      margin-top: 12px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: 1px solid #30363d;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 50% 0%, #162032 0%, #090c10 70%);
+      color: #f8fafc;
+    }
+    .glass-card {
+      width: 100%;
+      max-width: 380px;
+      padding: 32px 26px;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 12px #38bdf8;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #e2e8f0;
     }
     input, select {
-      background: #161b22;
-      color: #ffffff;
+      width: 100%;
+      padding: 15px 16px;
+      margin-bottom: 14px;
+      font-size: 15px;
+      color: #f8fafc;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      outline: none;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
     }
-    button#sendBtn {
-      background: #00c853;
-      color: #000000;
-      font-weight: bold;
+    input::placeholder {
+      color: #64748b;
+    }
+    input:focus, select:focus {
+      border-color: rgba(56, 189, 248, 0.5);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
+    }
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://w3.org' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 16px;
+      padding-right: 40px;
+    }
+    button {
+      width: 100%;
+      padding: 15px;
+      margin-top: 4px;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      color: #090c10;
+      background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
       border: none;
+      border-radius: 14px;
       cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.2s ease;
     }
-    button#sendBtn:disabled {
-      background: #444c56;
-      color: #8b949e;
+    button:hover {
+      opacity: 0.92;
     }
-    .presets {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-top: 14px;
+    button:active {
+      transform: scale(0.98);
     }
-    .presets button {
-      margin-top: 0;
-      padding: 10px 6px;
-      font-size: 13px;
-      background: #21262d;
-      color: #c9d1d9;
-      border: 1px solid #30363d;
-      cursor: pointer;
+    button:disabled {
+      background: rgba(255, 255, 255, 0.08);
+      color: #475569;
+      cursor: not-allowed;
     }
     #status {
-      margin-top: 16px;
-      font-size: 14px;
-      color: #58a6ff;
-      word-break: break-word;
+      margin-top: 18px;
+      font-size: 13px;
+      color: #64748b;
+      text-align: center;
+      letter-spacing: 0.2px;
+      min-height: 18px;
     }
     #screenStrobe {
       display: none;
@@ -75,49 +120,41 @@
       background: #000000;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
-      font-size: 18px;
-      color: #555555;
+      font-size: 14px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #334155;
     }
   </style>
 </head>
 <body>
-  <h2>Li-Fi Optical Transmitter</h2>
-  <p class="sub">Dual-Mode Encrypted Data, Emoji, 2FA Lock &amp; Calculator</p>
+  <div class="glass-card">
+    <div class="title-row">
+      <span class="pulse-dot"></span>
+      <h1>Li-Fi</h1>
+    </div>
 
-  <input
-    type="text"
-    id="messageInput"
-    maxlength="32"
-    placeholder="Type text, emoji (🐴), or math (25*8=)"
-  />
+    <input
+      type="text"
+      id="messageInput"
+      maxlength="32"
+      placeholder="Message, emoji, or math..."
+      autocomplete="off"
+    />
 
-  <select id="modeSelect">
-    <option value="auto">Mode: Auto (Rear Flash + Screen Fallback)</option>
-    <option value="flash">Mode: Rear Flashlight Only</option>
-    <option value="screen">Mode: Screen Flash (Works on ALL Phones)</option>
-  </select>
+    <select id="modeSelect">
+      <option value="screen">Screen Flash</option>
+      <option value="auto">Auto Carrier</option>
+      <option value="flash">Rear Flashlight</option>
+    </select>
 
-  <button id="sendBtn">Transmit Light Signal</button>
+    <button id="sendBtn">Transmit</button>
 
-  <div class="presets">
-    <button type="button" onclick="setDemo('🐴')">🐴 Horse</button>
-    <button type="button" onclick="setDemo('🚨')">🚨 SOS</button>
-    <button type="button" onclick="setDemo('25*8=')">🧮 25*8=</button>
-    <button type="button" onclick="setDemo('OPEN2026')">🔓 2FA Open</button>
-    <button type="button" onclick="setDemo('KEY:1234')">🔒 Bad Key</button>
-    <button type="button" onclick="setDemo('LED ON')">💡 LED ON</button>
+    <p id="status">Ready</p>
   </div>
 
-  <p id="status">Status: Ready (v3 Turbo)</p>
+  <div id="screenStrobe">Transmitting</div>
 
-  <div id="screenStrobe">Transmitting via Screen Flash...</div>
-
-  <script>
-    function setDemo(val) {
-      document.getElementById("messageInput").value = val;
-    }
-  </script>
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
