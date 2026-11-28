@@ -7,7 +7,6 @@ const screenStrobe = document.getElementById("screenStrobe");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// 1. Special Hardware Reaction Tokens (triggers custom LCD pixel icons + LED animations)
 const SPECIAL_REACTIONS = {
   "🐴": "~1", "🐎": "~1",
   "🚨": "~2", "🆘": "~2",
@@ -17,7 +16,6 @@ const SPECIAL_REACTIONS = {
   "🔥": "~6", "💥": "~6"
 };
 
-// 2. Universal Emoji-to-Word Dictionary (translates phone emojis into clean LCD text)
 const UNIVERSAL_EMOJIS = {
   "😀": "SMILE", "😁": "GRIN", "😂": "LAUGH", "🤣": "LOL", "😊": "HAPPY",
   "😍": "LOVE IT", "😎": "COOL", "😢": "SAD", "😭": "CRY", "😡": "ANGRY",
@@ -36,7 +34,6 @@ const UNIVERSAL_EMOJIS = {
   "🏏": "CRICKET", "🎵": "MUSIC", "🎓": "GRADUATE", "🇮🇳": "INDIA"
 };
 
-// 3. Unicode Special Characters & Smart Punctuation Map (for 16x2 LCD compatibility)
 const SPECIAL_SYMBOLS = {
   "“": "\"", "”": "\"", "‘": "'", "’": "'",
   "—": "-", "–": "-", "…": "...",
@@ -49,7 +46,6 @@ const SPECIAL_SYMBOLS = {
 
 function encodeForLiFi(text) {
   let result = text;
-
   for (const [emoji, token] of Object.entries(SPECIAL_REACTIONS)) {
     result = result.split(emoji).join(token);
   }
@@ -59,8 +55,6 @@ function encodeForLiFi(text) {
   for (const [sym, ascii] of Object.entries(SPECIAL_SYMBOLS)) {
     result = result.split(sym).join(ascii);
   }
-
-  // Keep all printable ASCII characters (letters, numbers, and !@#$%^&*()_+-=[]{};':",./<>?\|~`)
   result = result.replace(/[^\x20-\x7E]/g, "").trim();
   return result || "MSG";
 }
@@ -169,7 +163,7 @@ sendBtn.addEventListener("click", async () => {
       statusText.textContent = "Status: Transmitting via Rear LED Flashlight...";
     }
 
-    // 1. 2x Turbo Start Bit (350ms ON, 130ms OFF)
+    // 1. 2x Fast Start Bit (350ms ON, 130ms OFF)
     await setLight(true);
     await sleep(350);
     await setLight(false);
