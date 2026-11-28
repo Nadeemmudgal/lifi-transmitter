@@ -3,35 +3,121 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';" />
   <title>Li-Fi Light Transmitter</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 420px; margin: 40px auto; padding: 20px; background: #111; color: #f5f5f5; }
-    input, select, button { width: 100%; padding: 14px; margin-top: 12px; font-size: 16px; border-radius: 8px; border: none; box-sizing: border-box; }
-    input, select { background: #222; color: #fff; border: 1px solid #444; }
-    button { background: #00c853; color: #000; font-weight: bold; cursor: pointer; }
-    button:disabled { background: #555; color: #999; }
-    #status { margin-top: 16px; font-size: 14px; color: #aaa; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 420px;
+      margin: 24px auto;
+      padding: 0 16px;
+      background: #0d1117;
+      color: #f0f6fc;
+    }
+    h2 {
+      margin-bottom: 6px;
+      color: #00e5ff;
+    }
+    p.sub {
+      margin-top: 0;
+      font-size: 13px;
+      color: #8b949e;
+    }
+    input, select, button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 14px;
+      margin-top: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #30363d;
+    }
+    input, select {
+      background: #161b22;
+      color: #ffffff;
+    }
+    button#sendBtn {
+      background: #00c853;
+      color: #000000;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    button#sendBtn:disabled {
+      background: #444c56;
+      color: #8b949e;
+    }
+    .presets {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .presets button {
+      margin-top: 0;
+      padding: 10px 6px;
+      font-size: 13px;
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 16px;
+      font-size: 14px;
+      color: #58a6ff;
+      word-break: break-word;
+    }
     #screenStrobe {
-      display: none; position: fixed; inset: 0; z-index: 9999;
-      background: #000; align-items: center; justify-content: center;
-      font-weight: bold; font-size: 18px; color: #555;
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #000000;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
+      color: #555555;
     }
   </style>
 </head>
 <body>
-  <h2>Li-Fi Light Transmitter</h2>
-  <input type="text" id="messageInput" maxlength="32" placeholder="Enter message (max 32 chars)" />
+  <h2>Li-Fi Optical Transmitter</h2>
+  <p class="sub">Dual-Mode Encrypted Data, Emoji, 2FA Lock &amp; Calculator</p>
+
+  <input
+    type="text"
+    id="messageInput"
+    maxlength="32"
+    placeholder="Type text, emoji (🐴), or math (25*8=)"
+  />
+
   <select id="modeSelect">
     <option value="auto">Mode: Auto (Rear Flash + Screen Fallback)</option>
     <option value="flash">Mode: Rear Flashlight Only</option>
     <option value="screen">Mode: Screen Flash (Works on ALL Phones)</option>
   </select>
+
   <button id="sendBtn">Transmit Light Signal</button>
-  <p id="status">Status: Ready (v2 Universal)</p>
 
-  <div id="screenStrobe">Hold screen 1-2 inches from LDR sensor...</div>
+  <div class="presets">
+    <button type="button" onclick="setDemo('🐴')">🐴 Horse</button>
+    <button type="button" onclick="setDemo('🚨')">🚨 SOS</button>
+    <button type="button" onclick="setDemo('25*8=')">🧮 25*8=</button>
+    <button type="button" onclick="setDemo('OPEN2026')">🔓 2FA Open</button>
+    <button type="button" onclick="setDemo('KEY:1234')">🔒 Bad Key</button>
+    <button type="button" onclick="setDemo('LED ON')">💡 LED ON</button>
+  </div>
 
-  <script src="app.js?v=2"></script>
+  <p id="status">Status: Ready (v3 Turbo)</p>
+
+  <div id="screenStrobe">Transmitting via Screen Flash...</div>
+
+  <script>
+    function setDemo(val) {
+      document.getElementById("messageInput").value = val;
+    }
+  </script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
