@@ -7,7 +7,69 @@ const screenStrobe = document.getElementById("screenStrobe");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Hidden video element keeps Android camera pipeline alive so torch stays on
+// 1. Special Hardware Reaction Tokens (custom LCD pixel icons + LED animations)
+const SPECIAL_REACTIONS = {
+  "🐴": "~1", "🐎": "~1",
+  "🚨": "~2", "🆘": "~2",
+  "❤️": "~3", "❤": "~3", "💖": "~3", "💕": "~3",
+  "👍": "~4", "✅": "~4", "👌": "~4",
+  "💡": "~5", "🔦": "~5",
+  "🔥": "~6", "💥": "~6"
+};
+
+// 2. Universal Emoji-to-Word Dictionary
+const UNIVERSAL_EMOJIS = {
+  "😀": "SMILE", "😁": "GRIN", "😂": "LAUGH", "🤣": "LOL", "😊": "HAPPY",
+  "😍": "LOVE IT", "😎": "COOL", "😢": "SAD", "😭": "CRY", "😡": "ANGRY",
+  "😱": "SHOCK", "😴": "SLEEP", "🤔": "THINKING", "🙏": "NAMASTE", "👏": "CLAP",
+  "👋": "HELLO", "✌️": "VICTORY", "💪": "STRONG", "🎉": "PARTY", "🎂": "BIRTHDAY",
+  "🏆": "TROPHY", "⭐": "STAR", "🌟": "BRIGHT", "⚡": "POWER", "☀️": "SUN",
+  "🌧️": "RAIN", "❄️": "COLD", "🌈": "RAINBOW", "🌍": "EARTH", "🐶": "DOG",
+  "🐱": "CAT", "🦁": "LION", "🐯": "TIGER", "🐘": "ELEPHANT", "🐒": "MONKEY",
+  "🐦": "BIRD", "🐍": "SNAKE", "🐟": "FISH", "🦋": "BUTTERFLY", "🚗": "CAR",
+  "🚌": "BUS", "🚂": "TRAIN", "✈️": "AIRPLANE", "🚀": "ROCKET", "🚑": "AMBULANCE",
+  "🚒": "FIRE TRUCK", "🚓": "POLICE", "🚲": "BICYCLE", "🚢": "SHIP", "🏥": "HOSPITAL",
+  "🏫": "COLLEGE", "🏠": "HOME", "🏭": "FACTORY", "⛽": "FUEL", "📱": "MOBILE",
+  "💻": "LAPTOP", "🔋": "BATTERY", "📡": "SIGNAL", "🔒": "LOCKED", "🔓": "UNLOCKED",
+  "⚠️": "WARNING", "🚫": "STOP", "❓": "QUESTION", "❗": "ALERT", "🍎": "APPLE",
+  "🍌": "BANANA", "🍕": "PIZZA", "☕": "COFFEE", "💧": "WATER", "⚽": "FOOTBALL",
+  "🏏": "CRICKET", "🎵": "MUSIC", "🎓": "GRADUATE", "🇮🇳": "INDIA"
+};
+
+// 3. Unicode Special Characters & Smart Punctuation Map (for 16x2 LCD compatibility)
+const SPECIAL_SYMBOLS = {
+  "“": "\"", "”": "\"", "‘": "'", "’": "'",
+  "—": "-", "–": "-", "…": "...",
+  "₹": "Rs.", "€": "EUR", "£": "GBP", "¥": "YEN",
+  "°": " deg", "±": "+/-", "×": "*", "÷": "/",
+  "≤": "<=", "≥": ">=", "≠": "!=", "≈": "~=",
+  "∞": "INF", "√": "sqrt", "π": "pi", "Ω": "Ohm", "µ": "u",
+  "©": "(c)", "®": "(R)", "™": "(TM)", "•": "*"
+};
+
+function encodeForLiFi(text) {
+  let result = text;
+
+  // Step A: Map special reaction emojis to 2-byte Arduino tokens
+  for (const [emoji, token] of Object.entries(SPECIAL_REACTIONS)) {
+    result = result.split(emoji).join(token);
+  }
+
+  // Step B: Map standard emojis to uppercase English words
+  for (const [emoji, word] of Object.entries(UNIVERSAL_EMOJIS)) {
+    result = result.split(emoji).join(word);
+  }
+
+  // Step C: Normalize Unicode symbols & smart punctuation to LCD-safe ASCII
+  for (const [sym, ascii] of Object.entries(SPECIAL_SYMBOLS)) {
+    result = result.split(sym).join(ascii);
+  }
+
+  // Step D: Preserve all printable ASCII characters (0x20-0x7E: letters, digits, !@#$%^&*()_+-=[]{};':",./<>?\|~`)
+  result = result.replace(/[^\x20-\x7E]/g, "").trim();
+  return result || "MSG";
+}
+
 const hiddenVideo = document.createElement("video");
 hiddenVideo.setAttribute("playsinline", "");
 hiddenVideo.muted = true;
@@ -15,25 +77,19 @@ hiddenVideo.style.display = "none";
 document.body.appendChild(hiddenVideo);
 
 async function getUniversalTorchTrack() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    return null;
-  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
 
-  // Helper to test if a given media stream supports torch
   const extractTorchTrack = async (stream) => {
     const track = stream.getVideoTracks()[0];
     if (!track) return null;
 
     hiddenVideo.srcObject = stream;
     await hiddenVideo.play().catch(() => {});
-    await sleep(150); // Allow camera hardware capabilities to initialize
+    await sleep(150);
 
     const caps = track.getCapabilities ? track.getCapabilities() : {};
-    if (caps.torch) {
-      return { track, stream };
-    }
+    if (caps.torch) return { track, stream };
 
-    // Some Android devices expose torch via ImageCapture even if getCapabilities lags
     if ("ImageCapture" in window) {
       try {
         const ic = new ImageCapture(track);
@@ -49,14 +105,12 @@ async function getUniversalTorchTrack() {
   };
 
   try {
-    // 1. Try default rear environment camera first
     const envStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: "environment" } }
     });
     const envResult = await extractTorchTrack(envStream);
     if (envResult) return envResult;
 
-    // 2. Scan all video inputs (handles multi-lens Android phones)
     const devices = await navigator.mediaDevices.enumerateDevices();
     const videoDevices = devices.filter((d) => d.kind === "videoinput");
 
@@ -75,11 +129,13 @@ async function getUniversalTorchTrack() {
 }
 
 sendBtn.addEventListener("click", async () => {
-  const message = messageInput.value.trim();
-  if (!message) {
-    statusText.textContent = "Status: Enter a message first.";
+  const rawMessage = messageInput.value.trim();
+  if (!rawMessage) {
+    statusText.textContent = "Status: Enter a message, symbol, or emoji first.";
     return;
   }
+
+  const payload = encodeForLiFi(rawMessage);
 
   sendBtn.disabled = true;
   const mode = modeSelect.value;
@@ -93,7 +149,7 @@ sendBtn.addEventListener("click", async () => {
 
       if (!torchSession) {
         if (mode === "flash") {
-          throw new Error("Hardware LED not supported in this browser (e.g. iOS Safari). Select 'Auto' or 'Screen Flash'.");
+          throw new Error("Hardware LED not supported in this browser. Select 'Auto' or 'Screen Flash'.");
         }
         useScreen = true;
       }
@@ -125,8 +181,8 @@ sendBtn.addEventListener("click", async () => {
     await sleep(250);
 
     // 2. Transmit XOR-encrypted bits
-    for (let i = 0; i < message.length; i++) {
-      const encryptedByte = message.charCodeAt(i) ^ SECRET_KEY;
+    for (let i = 0; i < payload.length; i++) {
+      const encryptedByte = payload.charCodeAt(i) ^ SECRET_KEY;
 
       for (let bitPos = 7; bitPos >= 0; bitPos--) {
         const bit = (encryptedByte >> bitPos) & 1;
@@ -138,7 +194,7 @@ sendBtn.addEventListener("click", async () => {
       }
     }
 
-    statusText.textContent = `Status: Sent "${message}" via ${useScreen ? "Screen Flash" : "Rear Flashlight"}.`;
+    statusText.textContent = `Status: Sent "${rawMessage}" -> "${payload}" via ${useScreen ? "Screen Flash" : "Rear Flashlight"}.`;
   } catch (err) {
     statusText.textContent = `Error: ${err.message}`;
   } finally {
