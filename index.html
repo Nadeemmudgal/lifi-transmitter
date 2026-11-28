@@ -5,112 +5,55 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Li-Fi</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
-      background: radial-gradient(circle at 50% 0%, #162032 0%, #090c10 70%);
+      font-family: system-ui, sans-serif;
+      background: #0b0f17;
       color: #f8fafc;
     }
-    .glass-card {
+    .box {
       width: 100%;
-      max-width: 380px;
-      padding: 32px 26px;
-      background: rgba(255, 255, 255, 0.03);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 24px;
-      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+      max-width: 360px;
+      padding: 28px 22px;
+      background: #131a26;
+      border: 1px solid #232f42;
+      border-radius: 20px;
     }
-    .title-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 24px;
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: 600;
+      letter-spacing: 1px;
     }
-    .pulse-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #38bdf8;
-      box-shadow: 0 0 12px #38bdf8;
-    }
-    h1 {
-      font-size: 20px;
-      font-weight: 500;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: #e2e8f0;
+    input, select, button {
+      width: 100%;
+      padding: 14px;
+      margin-bottom: 12px;
+      font-size: 15px;
+      border-radius: 12px;
+      border: 1px solid #283548;
     }
     input, select {
-      width: 100%;
-      padding: 15px 16px;
-      margin-bottom: 14px;
-      font-size: 15px;
-      color: #f8fafc;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 14px;
-      outline: none;
-      transition: border-color 0.25s ease, box-shadow 0.25s ease;
-    }
-    input::placeholder {
-      color: #64748b;
-    }
-    input:focus, select:focus {
-      border-color: rgba(56, 189, 248, 0.5);
-      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
-    }
-    select {
-      appearance: none;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://w3.org' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-      background-repeat: no-repeat;
-      background-position: right 14px center;
-      background-size: 16px;
-      padding-right: 40px;
+      background: #0b0f17;
+      color: #ffffff;
     }
     button {
-      width: 100%;
-      padding: 15px;
-      margin-top: 4px;
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 0.4px;
-      color: #090c10;
-      background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+      background: #38bdf8;
+      color: #0b0f17;
+      font-weight: 700;
       border: none;
-      border-radius: 14px;
       cursor: pointer;
-      transition: transform 0.15s ease, opacity 0.2s ease;
-    }
-    button:hover {
-      opacity: 0.92;
-    }
-    button:active {
-      transform: scale(0.98);
-    }
-    button:disabled {
-      background: rgba(255, 255, 255, 0.08);
-      color: #475569;
-      cursor: not-allowed;
     }
     #status {
-      margin-top: 18px;
-      font-size: 13px;
-      color: #64748b;
+      margin-top: 8px;
       text-align: center;
-      letter-spacing: 0.2px;
-      min-height: 18px;
+      font-size: 13px;
+      color: #94a3b8;
     }
     #screenStrobe {
       display: none;
@@ -118,43 +61,21 @@
       inset: 0;
       z-index: 9999;
       background: #000000;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: #334155;
     }
   </style>
 </head>
 <body>
-  <div class="glass-card">
-    <div class="title-row">
-      <span class="pulse-dot"></span>
-      <h1>Li-Fi</h1>
-    </div>
-
-    <input
-      type="text"
-      id="messageInput"
-      maxlength="32"
-      placeholder="Message, emoji, or math..."
-      autocomplete="off"
-    />
-
+  <div class="box">
+    <h2>LI-FI</h2>
+    <input type="text" id="messageInput" maxlength="32" placeholder="Type text, emoji, or 25*8=" />
     <select id="modeSelect">
       <option value="screen">Screen Flash</option>
-      <option value="auto">Auto Carrier</option>
       <option value="flash">Rear Flashlight</option>
     </select>
-
     <button id="sendBtn">Transmit</button>
-
     <p id="status">Ready</p>
   </div>
-
-  <div id="screenStrobe">Transmitting</div>
-
-  <script src="app.js?v=7"></script>
+  <div id="screenStrobe"></div>
+  <script src="app.js?v=8"></script>
 </body>
 </html>
