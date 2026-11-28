@@ -7,7 +7,7 @@ const screenStrobe = document.getElementById("screenStrobe");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// 1. Special Hardware Reaction Tokens (custom LCD pixel icons + LED animations)
+// 1. Special Hardware Reaction Tokens (triggers custom LCD pixel icons + LED animations)
 const SPECIAL_REACTIONS = {
   "🐴": "~1", "🐎": "~1",
   "🚨": "~2", "🆘": "~2",
@@ -17,7 +17,7 @@ const SPECIAL_REACTIONS = {
   "🔥": "~6", "💥": "~6"
 };
 
-// 2. Universal Emoji-to-Word Dictionary
+// 2. Universal Emoji-to-Word Dictionary (translates phone emojis into clean LCD text)
 const UNIVERSAL_EMOJIS = {
   "😀": "SMILE", "😁": "GRIN", "😂": "LAUGH", "🤣": "LOL", "😊": "HAPPY",
   "😍": "LOVE IT", "😎": "COOL", "😢": "SAD", "😭": "CRY", "😡": "ANGRY",
@@ -50,22 +50,17 @@ const SPECIAL_SYMBOLS = {
 function encodeForLiFi(text) {
   let result = text;
 
-  // Step A: Map special reaction emojis to 2-byte Arduino tokens
   for (const [emoji, token] of Object.entries(SPECIAL_REACTIONS)) {
     result = result.split(emoji).join(token);
   }
-
-  // Step B: Map standard emojis to uppercase English words
   for (const [emoji, word] of Object.entries(UNIVERSAL_EMOJIS)) {
     result = result.split(emoji).join(word);
   }
-
-  // Step C: Normalize Unicode symbols & smart punctuation to LCD-safe ASCII
   for (const [sym, ascii] of Object.entries(SPECIAL_SYMBOLS)) {
     result = result.split(sym).join(ascii);
   }
 
-  // Step D: Preserve all printable ASCII characters (0x20-0x7E: letters, digits, !@#$%^&*()_+-=[]{};':",./<>?\|~`)
+  // Keep all printable ASCII characters (letters, numbers, and !@#$%^&*()_+-=[]{};':",./<>?\|~`)
   result = result.replace(/[^\x20-\x7E]/g, "").trim();
   return result || "MSG";
 }
@@ -174,13 +169,13 @@ sendBtn.addEventListener("click", async () => {
       statusText.textContent = "Status: Transmitting via Rear LED Flashlight...";
     }
 
-    // 1. Start Bit (700ms ON, 250ms OFF)
+    // 1. 2x Turbo Start Bit (350ms ON, 130ms OFF)
     await setLight(true);
-    await sleep(700);
+    await sleep(350);
     await setLight(false);
-    await sleep(250);
+    await sleep(130);
 
-    // 2. Transmit XOR-encrypted bits
+    // 2. Transmit XOR-encrypted bits (1 = 180ms, 0 = 60ms, gap = 110ms)
     for (let i = 0; i < payload.length; i++) {
       const encryptedByte = payload.charCodeAt(i) ^ SECRET_KEY;
 
@@ -188,9 +183,9 @@ sendBtn.addEventListener("click", async () => {
         const bit = (encryptedByte >> bitPos) & 1;
 
         await setLight(true);
-        await sleep(bit === 1 ? 350 : 120);
+        await sleep(bit === 1 ? 180 : 60);
         await setLight(false);
-        await sleep(220);
+        await sleep(110);
       }
     }
 
